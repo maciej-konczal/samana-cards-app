@@ -34,7 +34,7 @@ export default function Signup({ searchParams }: { searchParams: Message }) {
       return encodedRedirect(
         "success",
         "/signup",
-        "Thanks for signing up! Please check your email for a verification link.",
+        "Thanks for signing up! Please check your email for a verification link."
       );
     }
   };
@@ -51,7 +51,7 @@ export default function Signup({ searchParams }: { searchParams: Message }) {
     <div className="w-full flex-1 flex items-center h-screen sm:max-w-md justify-center gap-2 p-4">
       <Link
         href="/"
-        className="absolute left-8 top-8 py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover flex items-center group text-sm"
+        className="absolute left-8 top-20 py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover flex items-center group text-sm"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
