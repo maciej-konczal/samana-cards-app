@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Card from "./Card";
+import BulkCardImport from "./BulkCardImport";
 import { toast } from "react-toastify";
 
 interface Translation {
@@ -109,8 +110,44 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
     });
   };
 
+  const handleBulkImport = async (importedCards) => {
+    setIsLoading(true);
+
+    for (const card of importedCards) {
+      const { data: cardData, error: cardError } = await supabase
+        .from("cards")
+        .insert({ text: card.text, card_set: card_set_id })
+        .select()
+        .single();
+
+      if (cardError) {
+        toast.error(`Error adding card: ${card.text}`);
+        continue;
+      }
+
+      if (cardData) {
+        const translationsToInsert = card.translations.map((t) => ({
+          ...t,
+          card_id: cardData.id,
+        }));
+
+        const { error: translationsError } = await supabase
+          .from("translations")
+          .insert(translationsToInsert);
+
+        if (translationsError) {
+          toast.error(`Error adding translations for card: ${card.text}`);
+        }
+      }
+    }
+
+    setIsLoading(false);
+    fetchCards(); // Refresh the cards list
+    toast.success("Bulk import completed");
+  };
+
   return (
-    <div>
+    <div className="space-y-8">
       <form onSubmit={handleAddCard} className="mb-6 space-y-4">
         <div>
           <input
@@ -168,6 +205,11 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
           </button>
         </div>
       </form>
+
+      <div className="border-t pt-8">
+        <h2 className="text-xl font-semibold mb-4">Bulk Import Cards</h2>
+        <BulkCardImport languages={languages} onImport={handleBulkImport} />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {cards.map((card) => (
