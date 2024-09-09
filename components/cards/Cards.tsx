@@ -31,7 +31,7 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
     const { data: cardsData } = await supabase
       .from("cards")
       .select(`id, text, translations (id, text, language_id)`)
-      .eq("card_set", card_set_id);
+      .eq("card_set_id", card_set_id);
     setCards(cardsData || []);
   };
 
@@ -58,7 +58,7 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
 
     const { data: cardData, error: cardError } = await supabase
       .from("cards")
-      .insert({ text: newCard.text, card_set: card_set_id })
+      .insert({ text: newCard.text, card_set_id: card_set_id })
       .select()
       .single();
 
@@ -116,7 +116,7 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
     for (const card of importedCards) {
       const { data: cardData, error: cardError } = await supabase
         .from("cards")
-        .insert({ text: card.text, card_set: card_set_id })
+        .insert({ text: card.text, card_set_id: card_set_id })
         .select()
         .single();
 

@@ -1,17 +1,51 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 
 interface UnderlinedText {
   phrase: string;
   context: string;
 }
 
-export default function UnderlinedTextExtractor() {
+interface Language {
+  id: string;
+  name: string;
+  iso_2: string;
+}
+
+interface UnderlinedTextExtractorProps {
+  card_set_id: string;
+}
+
+export default function UnderlinedTextExtractor({
+  card_set_id,
+}: UnderlinedTextExtractorProps) {
   const [file, setFile] = useState<File | null>(null);
   const [extractedText, setExtractedText] = useState<UnderlinedText[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [selectedLanguages, setSelectedLanguages] = useState<{
+    [key: number]: string;
+  }>({});
+  const [translations, setTranslations] = useState<{ [key: number]: string }>(
+    {}
+  );
+
+  useEffect(() => {
+    fetchLanguages();
+  }, []);
+
+  const fetchLanguages = async () => {
+    try {
+      const response = await fetch("/api/languages");
+      const data = await response.json();
+      setLanguages(data);
+    } catch (error) {
+      console.error("Error fetching languages:", error);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -32,7 +66,7 @@ export default function UnderlinedTextExtractor() {
     formData.append("image", file);
 
     try {
-      const response = await fetch("/extract-underlined/api", {
+      const response = await fetch("/api/extractUnderlined", {
         method: "POST",
         body: formData,
       });
@@ -58,6 +92,57 @@ export default function UnderlinedTextExtractor() {
       );
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLanguageChange = (index: number, languageId: string) => {
+    setSelectedLanguages({ ...selectedLanguages, [index]: languageId });
+  };
+
+  const handleTranslationChange = (index: number, text: string) => {
+    setTranslations({ ...translations, [index]: text });
+  };
+
+  const handleAddCard = async (index: number) => {
+    const phrase = extractedText[index].phrase;
+    const languageId = selectedLanguages[index];
+    const translatedText = translations[index];
+
+    if (!languageId) {
+      toast.error("Please select a language");
+      return;
+    }
+
+    if (!translatedText) {
+      toast.error("Please enter a translation");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/cards/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: phrase,
+          card_set_id: card_set_id,
+          languageId: languageId,
+          translatedText: translatedText,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add card");
+      }
+
+      toast.success("Card added successfully");
+      // Clear the input fields after successful addition
+      setSelectedLanguages({ ...selectedLanguages, [index]: "" });
+      setTranslations({ ...translations, [index]: "" });
+    } catch (error) {
+      console.error("Error adding card:", error);
+      toast.error("Failed to add card");
     }
   };
 
@@ -91,6 +176,13 @@ export default function UnderlinedTextExtractor() {
                 <th className="border border-gray-300 p-2 text-left">
                   Context
                 </th>
+                <th className="border border-gray-300 p-2 text-left">
+                  Language
+                </th>
+                <th className="border border-gray-300 p-2 text-left">
+                  Translation
+                </th>
+                <th className="border border-gray-300 p-2 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -101,6 +193,41 @@ export default function UnderlinedTextExtractor() {
                 >
                   <td className="border border-gray-300 p-2">{item.phrase}</td>
                   <td className="border border-gray-300 p-2">{item.context}</td>
+                  <td className="border border-gray-300 p-2">
+                    <select
+                      value={selectedLanguages[index] || ""}
+                      onChange={(e) =>
+                        handleLanguageChange(index, e.target.value)
+                      }
+                      className="w-full p-1 border rounded"
+                    >
+                      <option value="">Select Language</option>
+                      {languages.map((lang) => (
+                        <option key={lang.id} value={lang.id}>
+                          {lang.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="border border-gray-300 p-2">
+                    <input
+                      type="text"
+                      value={translations[index] || ""}
+                      onChange={(e) =>
+                        handleTranslationChange(index, e.target.value)
+                      }
+                      placeholder="Enter translation"
+                      className="w-full p-1 border rounded"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-2">
+                    <button
+                      onClick={() => handleAddCard(index)}
+                      className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                    >
+                      Add Card
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
