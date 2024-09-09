@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Cards from "@/components/cards/Cards";
+import UnderlinedTextExtractor from "@/components/extractors/UnderlinedTextExtractor";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -17,6 +18,8 @@ export default async function Page({ params }: { params: { id: string } }) {
     <div>
       <p>Card Set: {params.id}</p>
       <Cards card_set_id={params.id} />
+      <h1 className="text-2xl font-bold mb-4">Underlined Text Extractor</h1>
+      <UnderlinedTextExtractor />
     </div>
   );
 }
