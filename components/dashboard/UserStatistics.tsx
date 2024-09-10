@@ -111,12 +111,20 @@ export default function UserStatistics() {
 
     let currentStreak = 0;
     let longestStreak = 0;
-    let lastPracticeDate: Date | null = null;
+    let lastPracticeDate: string | null = null;
 
-    data.forEach((item) => {
+    // Sort data by practice_date in ascending order
+    const sortedData = data.sort(
+      (a, b) =>
+        new Date(a.practice_date).getTime() -
+        new Date(b.practice_date).getTime()
+    );
+
+    sortedData.forEach((item) => {
       const date = format(new Date(item.practice_date), "yyyy-MM-dd");
       dailyCounts[date] = (dailyCounts[date] || 0) + 1;
 
+      // Language stats processing remains the same
       if (!languageCounts[item.language_id]) {
         languageCounts[item.language_id] = {
           total: 0,
@@ -128,26 +136,39 @@ export default function UserStatistics() {
       languageCounts[item.language_id].total++;
       if (item.result) languageCounts[item.language_id].success++;
 
-      const practiceDate = new Date(item.practice_date);
+      // Streak calculation
       if (lastPracticeDate) {
+        const lastDate = new Date(lastPracticeDate);
+        const currentDate = new Date(date);
         const dayDiff = Math.floor(
-          (practiceDate.getTime() - lastPracticeDate.getTime()) /
-            (1000 * 3600 * 24)
+          (currentDate.getTime() - lastDate.getTime()) / (1000 * 3600 * 24)
         );
+
         if (dayDiff === 1) {
           currentStreak++;
-          longestStreak = Math.max(longestStreak, currentStreak);
         } else if (dayDiff > 1) {
+          longestStreak = Math.max(longestStreak, currentStreak);
           currentStreak = 1;
         }
+        // If dayDiff is 0, it's the same day, so we don't change the streak
       } else {
         currentStreak = 1;
       }
-      lastPracticeDate = practiceDate;
+      lastPracticeDate = date;
     });
 
-    const today = new Date();
-    const sevenDaysAgo = subDays(today, 6);
+    // Check if the streak is current (last practice was yesterday or today)
+    const today = format(new Date(), "yyyy-MM-dd");
+    const yesterday = format(subDays(new Date(), 1), "yyyy-MM-dd");
+
+    if (lastPracticeDate !== today && lastPracticeDate !== yesterday) {
+      longestStreak = Math.max(longestStreak, currentStreak);
+      currentStreak = 0;
+    }
+
+    // Final update for longest streak
+    longestStreak = Math.max(longestStreak, currentStreak);
+
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const date = format(subDays(today, i), "yyyy-MM-dd");
       return { date, count: dailyCounts[date] || 0 };
