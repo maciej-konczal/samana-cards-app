@@ -16,7 +16,7 @@ interface CardSet {
 interface Card {
   id: string;
   text: string;
-  translations: { text: string; language_id: string }[];
+  translations: { id: string; text: string; language_id: string }[];
 }
 
 interface ChainLink {
@@ -112,7 +112,13 @@ export default function Practice() {
 
     const { data, error } = await supabase
       .from("cards")
-      .select(`id, text, translations!inner (text, language_id)`)
+      .select(
+        `
+      id, 
+      text, 
+      translations!inner (id, text, language_id)
+    `
+      )
       .in("card_set_id", selectedCardSets)
       .eq("translations.language_id", selectedLanguage)
       .order("created_at", { ascending: false });
@@ -187,7 +193,13 @@ export default function Practice() {
 
   const handleFlashcardResult = (result: boolean) => {
     const currentCard = cards[currentCardIndex];
-    savePracticeResult(currentCard.id, result);
+    const currentTranslation = currentCard.translations[0]; // Assuming we're using the first translation
+    savePracticeResult(
+      currentCard.id,
+      currentTranslation.id,
+      currentTranslation.language_id,
+      result
+    );
     nextCard();
   };
 
@@ -227,9 +239,16 @@ export default function Practice() {
     setSelectedAnswer(answer);
   };
 
-  const savePracticeResult = async (cardId: string, result: boolean) => {
+  const savePracticeResult = async (
+    cardId: string,
+    translationId: string,
+    languageId: string,
+    result: boolean
+  ) => {
     const { error } = await supabase.from("practice_stats").insert({
       card_id: cardId,
+      translation_id: translationId,
+      language_id: languageId,
       result: result,
       practice_mode: practiceMode,
     });
@@ -242,8 +261,14 @@ export default function Practice() {
   const checkAnswer = () => {
     setIsAnswerChecked(true);
     const currentCard = cards[currentCardIndex];
-    const isCorrect = selectedAnswer === currentCard.translations[0].text;
-    savePracticeResult(currentCard.id, isCorrect);
+    const currentTranslation = currentCard.translations[0];
+    const isCorrect = selectedAnswer === currentTranslation.text;
+    savePracticeResult(
+      currentCard.id,
+      currentTranslation.id,
+      currentTranslation.language_id,
+      isCorrect
+    );
   };
 
   const startChainReaction = () => {
@@ -278,10 +303,17 @@ export default function Practice() {
     setChain(updatedChain);
     setChainInput("");
 
+    const currentCard = cards[currentChainIndex];
+    const currentTranslation = currentCard.translations[0];
     const isCorrect =
       chainInput.toLowerCase().trim() ===
       chain[currentChainIndex].answer.toLowerCase().trim();
-    savePracticeResult(cards[currentChainIndex].id, isCorrect);
+    savePracticeResult(
+      currentCard.id,
+      currentTranslation.id,
+      currentTranslation.language_id,
+      isCorrect
+    );
 
     if (currentChainIndex === chain.length - 1) {
       setIsChainComplete(true);
