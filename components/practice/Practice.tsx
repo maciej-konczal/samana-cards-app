@@ -48,6 +48,8 @@ export default function Practice() {
   const [chainInput, setChainInput] = useState("");
   const [isChainComplete, setIsChainComplete] = useState(false);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const supabase = createClient();
 
@@ -63,7 +65,9 @@ export default function Practice() {
 
   useEffect(() => {
     if (isPracticeStarted && cards.length > 0) {
-      generateMultipleChoiceOptions();
+      if (practiceMode === "multipleChoice") {
+        generateMultipleChoiceOptions();
+      }
     }
   }, [currentCardIndex, practiceMode, cards, isPracticeStarted]);
 
@@ -104,7 +108,7 @@ export default function Practice() {
   };
 
   const fetchCards = async () => {
-    if (selectedCardSets.length === 0) return;
+    if (selectedCardSets.length === 0) return [];
 
     const { data, error } = await supabase
       .from("cards")
@@ -115,8 +119,9 @@ export default function Practice() {
 
     if (error) {
       console.error("Error fetching cards:", error);
+      return [];
     } else {
-      setCards(data || []);
+      return data || [];
     }
   };
 
@@ -134,9 +139,43 @@ export default function Practice() {
   };
 
   const startPractice = async () => {
-    await fetchCards();
-    setIsPracticeStarted(true);
-    setCurrentCardIndex(0);
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const fetchedCards = await fetchCards();
+      setCards(fetchedCards);
+
+      if (fetchedCards.length === 0) {
+        setErrorMessage("No cards available for the selected sets.");
+        return;
+      }
+
+      if (practiceMode === "multipleChoice" && fetchedCards.length < 4) {
+        setErrorMessage(
+          "At least 4 cards are needed for Multiple Choice mode."
+        );
+        return;
+      }
+
+      if (practiceMode === "chainReaction" && fetchedCards.length < 5) {
+        setErrorMessage("At least 5 cards are needed for Chain Reaction mode.");
+        return;
+      }
+
+      setIsPracticeStarted(true);
+      setCurrentCardIndex(0);
+      if (practiceMode === "chainReaction") {
+        startChainReaction();
+      }
+    } catch (error) {
+      console.error("Error starting practice:", error);
+      setErrorMessage(
+        "An error occurred while starting the practice. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const flipCard = () => {
@@ -249,73 +288,6 @@ export default function Practice() {
     } else {
       setCurrentChainIndex(currentChainIndex + 1);
     }
-  };
-
-  const renderChainReaction = () => {
-    if (chain.length === 0) {
-      return (
-        <button
-          onClick={startChainReaction}
-          className="px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          Start Chain Reaction
-        </button>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        {chain.map((link, index) => (
-          <div key={index} className="bg-white p-4 rounded-lg shadow">
-            <p className="font-semibold">{link.question}</p>
-            {index < currentChainIndex && (
-              <p
-                className={`mt-2 ${
-                  link.userAnswer === link.answer
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                Your answer: {link.userAnswer}
-              </p>
-            )}
-            {index === currentChainIndex && !isChainComplete && (
-              <div className="mt-2">
-                <input
-                  type="text"
-                  value={chainInput}
-                  onChange={handleChainInput}
-                  className="w-full p-2 border rounded"
-                  placeholder="Your answer"
-                />
-                <button
-                  onClick={submitChainAnswer}
-                  className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
-                >
-                  Submit
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-        {isChainComplete && (
-          <div className="mt-4">
-            <h3 className="text-xl font-semibold mb-2">Chain Complete!</h3>
-            <p>
-              Correct Answers:{" "}
-              {chain.filter((link) => link.userAnswer === link.answer).length} /{" "}
-              {chain.length}
-            </p>
-            <button
-              onClick={startChainReaction}
-              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
-            >
-              Start New Chain
-            </button>
-          </div>
-        )}
-      </div>
-    );
   };
 
   const renderCard = () => {
@@ -496,19 +468,54 @@ export default function Practice() {
     }
   };
 
+  const renderPractice = () => {
+    if (isLoading) {
+      return (
+        <div className="text-center">
+          <p className="text-lg mb-4">Loading cards...</p>
+        </div>
+      );
+    }
+
+    if (errorMessage) {
+      return (
+        <div className="text-center">
+          <p className="text-red-500 text-lg mb-4">{errorMessage}</p>
+          <button
+            onClick={() => setIsPracticeStarted(false)}
+            className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          >
+            Back to Setup
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {renderCard()}
+        <div className="mt-8 text-center text-gray-600">
+          Card {currentCardIndex + 1} of {cards.length}
+        </div>
+      </>
+    );
+  };
+
   if (!isPracticeStarted) {
     return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">
-          Select Language and Card Sets to Practice
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-2xl">
+        <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">
+          Practice Setup
         </h1>
 
         <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">Select Language</h2>
+          <h2 className="text-xl font-semibold mb-2 text-gray-700">
+            Select Language
+          </h2>
           <select
             value={selectedLanguage}
             onChange={(e) => handleLanguageSelection(e.target.value)}
-            className="w-full p-2 border rounded"
+            className="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Select a language</option>
             {languages.map((lang) => (
@@ -521,20 +528,27 @@ export default function Practice() {
 
         {selectedLanguage && (
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">Select Card Sets</h2>
+            <h2 className="text-xl font-semibold mb-2 text-gray-700">
+              Select Card Sets
+            </h2>
             {cardSets.length === 0 ? (
-              <p>No card sets available for the selected language.</p>
+              <p className="text-gray-600">
+                No card sets available for the selected language.
+              </p>
             ) : (
               <div className="space-y-2">
                 {cardSets.map((set) => (
-                  <label key={set.id} className="flex items-center space-x-2">
+                  <label
+                    key={set.id}
+                    className="flex items-center space-x-2 p-2 bg-gray-100 rounded"
+                  >
                     <input
                       type="checkbox"
                       checked={selectedCardSets.includes(set.id)}
                       onChange={() => handleCardSetSelection(set.id)}
-                      className="form-checkbox"
+                      className="form-checkbox h-5 w-5 text-blue-600"
                     />
-                    <span>{set.name}</span>
+                    <span className="text-gray-800">{set.name}</span>
                   </label>
                 ))}
               </div>
@@ -542,13 +556,43 @@ export default function Practice() {
           </div>
         )}
 
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-2 text-gray-700">
+            Select Practice Mode
+          </h2>
+          <select
+            value={practiceMode}
+            onChange={(e) =>
+              setPracticeMode(
+                e.target.value as
+                  | "flashcard"
+                  | "multipleChoice"
+                  | "chainReaction"
+              )
+            }
+            className="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="flashcard">Flashcard</option>
+            <option value="multipleChoice">
+              Multiple Choice (requires at least 4 cards)
+            </option>
+            <option value="chainReaction">
+              Chain Reaction (requires at least 5 cards)
+            </option>
+          </select>
+        </div>
+
         <button
           onClick={startPractice}
-          disabled={selectedCardSets.length === 0}
-          className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
+          disabled={selectedCardSets.length === 0 || isLoading}
+          className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          Start Practice
+          {isLoading ? "Loading..." : "Start Practice"}
         </button>
+
+        {errorMessage && (
+          <p className="mt-4 text-red-500 text-center">{errorMessage}</p>
+        )}
       </div>
     );
   }
@@ -558,25 +602,7 @@ export default function Practice() {
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
         Practice
       </h1>
-      <div className="mb-8 flex justify-center">
-        <select
-          value={practiceMode}
-          onChange={(e) =>
-            setPracticeMode(
-              e.target.value as "flashcard" | "multipleChoice" | "chainReaction"
-            )
-          }
-          className="p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="flashcard">Flashcard</option>
-          <option value="multipleChoice">Multiple Choice</option>
-          <option value="chainReaction">Chain Reaction</option>
-        </select>
-      </div>
-      {renderCard()}
-      <div className="mt-8 text-center text-gray-600">
-        Card {currentCardIndex + 1} of {cards.length}
-      </div>
+      {renderPractice()}
     </div>
   );
 }
