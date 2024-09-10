@@ -31,6 +31,12 @@ export default async function NavButtons() {
           >
             Create Set
           </Link>
+          <Link
+            href="/practice"
+            className="h-8 flex items-center justify-center rounded-md no-underline text-sm font-medium px-4"
+          >
+            Practice
+          </Link>
         </>
       )}
     </div>
