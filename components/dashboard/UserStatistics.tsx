@@ -1,5 +1,7 @@
 "use client";
 
+import styles from "./UserStatistics.module.css";
+
 import React, { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Line } from "react-chartjs-2";
@@ -102,9 +104,14 @@ export default function UserStatistics() {
       {
         label: "Cards Practiced",
         data: dailyStats.map((stat) => stat.count),
-        fill: false,
-        borderColor: "rgb(75, 192, 192)",
-        tension: 0.1,
+        fill: true,
+        backgroundColor: "rgba(75, 192, 192, 0.2)",
+        borderColor: "rgba(75, 192, 192, 1)",
+        tension: 0.4,
+        pointBackgroundColor: "rgba(75, 192, 192, 1)",
+        pointBorderColor: "#fff",
+        pointHoverBackgroundColor: "#fff",
+        pointHoverBorderColor: "rgba(75, 192, 192, 1)",
       },
     ],
   };
@@ -114,32 +121,50 @@ export default function UserStatistics() {
     plugins: {
       legend: {
         position: "top" as const,
+        labels: {
+          font: {
+            size: 14,
+            weight: "bold" as const,
+          },
+        },
       },
       title: {
         display: true,
         text: "Cards Practiced in Last 7 Days",
+        font: {
+          size: 18,
+          weight: "bold" as const,
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0,
+        },
       },
     },
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-4">Your Practice Statistics</h2>
+    <div className="bg-gradient-to-br from-blue-50 to-green-50 p-8 rounded-xl shadow-lg">
+      <h2 className="text-3xl font-bold mb-6 text-gray-800">
+        Your Practice Journey
+      </h2>
 
-      <div className="mb-6">
+      <div className="mb-8 bg-white p-6 rounded-lg shadow">
         <Line data={chartData} options={chartOptions} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 text-center">
-        <div className="bg-blue-100 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">Total Cards Practiced</h3>
-          <p className="text-3xl font-bold text-blue-600">
-            {overallStats.totalCards}
-          </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="stat-card bg-blue-500 text-white p-6 rounded-lg">
+          <h3 className="text-xl font-semibold mb-2">Total Cards Mastered</h3>
+          <p className="text-4xl font-bold">{overallStats.totalCards}</p>
         </div>
-        <div className="bg-green-100 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">Success Rate</h3>
-          <p className="text-3xl font-bold text-green-600">
+        <div className="stat-card bg-green-500 text-white p-6 rounded-lg">
+          <h3 className="text-xl font-semibold mb-2">Success Rate</h3>
+          <p className="text-4xl font-bold">
             {overallStats.successRatio.toFixed(1)}%
           </p>
         </div>
