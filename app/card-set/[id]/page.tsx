@@ -18,8 +18,8 @@ export default async function Page({ params }: { params: { id: string } }) {
     <div>
       <p>Card Set: {params.id}</p>
       <Cards card_set_id={params.id} />
-      <h1 className="text-2xl font-bold mb-4">Underlined Text Extractor</h1>
-      <UnderlinedTextExtractor card_set_id={params.id} />
+      {/* <h1 className="text-2xl font-bold mb-4">Underlined Text Extractor</h1>
+      <UnderlinedTextExtractor card_set_id={params.id} /> */}
     </div>
   );
 }
