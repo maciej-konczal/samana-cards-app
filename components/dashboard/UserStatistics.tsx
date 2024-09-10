@@ -16,6 +16,7 @@ import {
 import { subDays, format, eachDayOfInterval } from "date-fns";
 import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
+import { FlagIcon, FlagIconCode } from "react-flag-kit";
 
 ChartJS.register(
   CategoryScale,
@@ -41,6 +42,8 @@ interface LanguageStats {
   [key: string]: {
     count: number;
     successRate: number;
+    name: string;
+    flagEmoji: string;
   };
 }
 
@@ -76,7 +79,14 @@ export default function UserStatistics() {
     // Fetch practice stats for the last year
     const { data: yearData, error: yearError } = await supabase
       .from("practice_stats")
-      .select("practice_date, result, language_id")
+      .select(
+        `
+      practice_date, 
+      result, 
+      language_id,
+      languages (name, flag_emoji)
+    `
+      )
       .gte("practice_date", oneYearAgo.toISOString())
       .order("practice_date", { ascending: true });
 
@@ -85,14 +95,20 @@ export default function UserStatistics() {
       return;
     }
 
-    processYearlyData(yearData);
+    processYearlyData(yearData || []);
   };
 
   const processYearlyData = (data: any[]) => {
     const dailyCounts: { [key: string]: number } = {};
     const languageCounts: {
-      [key: string]: { total: number; success: number };
+      [key: string]: {
+        total: number;
+        success: number;
+        name: string;
+        flagEmoji: string;
+      };
     } = {};
+
     let currentStreak = 0;
     let longestStreak = 0;
     let lastPracticeDate: Date | null = null;
@@ -102,7 +118,12 @@ export default function UserStatistics() {
       dailyCounts[date] = (dailyCounts[date] || 0) + 1;
 
       if (!languageCounts[item.language_id]) {
-        languageCounts[item.language_id] = { total: 0, success: 0 };
+        languageCounts[item.language_id] = {
+          total: 0,
+          success: 0,
+          name: item.languages?.name || `Language ${item.language_id}`,
+          flagEmoji: item.languages?.flag_emoji || "XX",
+        };
       }
       languageCounts[item.language_id].total++;
       if (item.result) languageCounts[item.language_id].success++;
@@ -142,12 +163,17 @@ export default function UserStatistics() {
     setOverallStats({ totalCards, successRatio });
 
     const processedLanguageStats: LanguageStats = {};
-    Object.entries(languageCounts).forEach(([langId, { total, success }]) => {
-      processedLanguageStats[langId] = {
-        count: total,
-        successRate: (success / total) * 100,
-      };
-    });
+    Object.entries(languageCounts).forEach(
+      ([langId, { total, success, name, flagEmoji }]) => {
+        processedLanguageStats[langId] = {
+          count: total,
+          successRate: total > 0 ? (success / total) * 100 : 0,
+          name: name,
+          flagEmoji: flagEmoji,
+        };
+      }
+    );
+
     setLanguageStats(processedLanguageStats);
 
     setStreakInfo({ currentStreak, longestStreak });
@@ -215,17 +241,17 @@ export default function UserStatistics() {
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="stat-card bg-blue-500 text-white p-6 rounded-lg">
+        <div className="stat-card bg-blue-600 text-white p-6 rounded-lg shadow-md">
           <h3 className="text-xl font-semibold mb-2">Total Cards Mastered</h3>
           <p className="text-4xl font-bold">{overallStats.totalCards}</p>
         </div>
-        <div className="stat-card bg-green-500 text-white p-6 rounded-lg">
+        <div className="stat-card bg-green-600 text-white p-6 rounded-lg shadow-md">
           <h3 className="text-xl font-semibold mb-2">Success Rate</h3>
           <p className="text-4xl font-bold">
             {overallStats.successRatio.toFixed(1)}%
           </p>
         </div>
-        <div className="stat-card bg-purple-500 text-white p-6 rounded-lg">
+        <div className="stat-card bg-purple-600 text-white p-6 rounded-lg shadow-md">
           <h3 className="text-xl font-semibold mb-2">Current Streak</h3>
           <p className="text-4xl font-bold">{streakInfo.currentStreak} days</p>
           <p className="text-sm mt-2">
@@ -234,7 +260,7 @@ export default function UserStatistics() {
         </div>
       </div>
 
-      <div className="mb-8 bg-white p-6 rounded-lg shadow">
+      <div className="mb-8 bg-white p-6 rounded-lg shadow-md">
         <h3 className="text-2xl font-bold mb-4 text-gray-800">
           Weekly Progress
         </h3>
@@ -245,18 +271,41 @@ export default function UserStatistics() {
         <h3 className="text-2xl font-bold mb-4 text-gray-800">
           Language Progress
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {Object.entries(languageStats).map(([langId, stats]) => (
-            <div key={langId} className="bg-gray-100 p-4 rounded-lg">
-              <h4 className="text-lg font-semibold mb-2">Language {langId}</h4>
-              <p>Cards: {stats.count}</p>
-              <p>Success Rate: {stats.successRate.toFixed(1)}%</p>
-            </div>
-          ))}
-        </div>
+        {Object.keys(languageStats).length === 0 ? (
+          <p className="text-gray-600">No language data available.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {Object.entries(languageStats).map(([langId, stats]) => (
+              <div
+                key={langId}
+                className="bg-blue-50 p-4 rounded-lg border border-blue-200 shadow-sm"
+              >
+                <div className="flex items-center mb-2">
+                  <FlagIcon
+                    code={stats.flagEmoji as FlagIconCode}
+                    size={24}
+                    className="mr-2"
+                  />
+                  <h4 className="text-lg font-semibold text-blue-800">
+                    {stats.name}
+                  </h4>
+                </div>
+                <p className="text-gray-700">
+                  Cards: <span className="font-medium">{stats.count}</span>
+                </p>
+                <p className="text-gray-700">
+                  Success Rate:{" "}
+                  <span className="font-medium">
+                    {stats.successRate.toFixed(1)}%
+                  </span>
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow">
+      <div className="bg-white p-6 rounded-lg shadow-md">
         <h3 className="text-2xl font-bold mb-4 text-gray-800">
           Practice Consistency
         </h3>
