@@ -5,6 +5,7 @@ import React, { useState, useRef } from "react";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  translation?: string;
   audio?: string;
 }
 
@@ -49,10 +50,11 @@ export default function CafeConversation() {
         }),
       });
       const data = await response.json();
-      const audioData = await generateSpeech(data.response);
+      const audioData = await generateSpeech(data.italian);
       const newMessage: Message = {
         role: "assistant",
-        content: data.response,
+        content: data.italian,
+        translation: data.english,
         audio: audioData,
       };
       setConversationHistory((prev) => [...prev, newMessage]);
@@ -79,9 +81,12 @@ export default function CafeConversation() {
   };
 
   const playAudio = (audioData: string) => {
-    if (audioRef.current) {
+    if (audioRef.current && audioData) {
       audioRef.current.src = `data:audio/mp3;base64,${audioData}`;
       audioRef.current.play();
+    } else {
+      console.log("No audio data available or audio playback not supported");
+      // Optionally, provide user feedback that audio is unavailable
     }
   };
 
@@ -115,18 +120,25 @@ export default function CafeConversation() {
         {conversationHistory.map((message, index) => (
           <div
             key={index}
-            className={`mb-2 p-2 rounded ${
+            className={`mb-4 p-2 rounded ${
               message.role === "user" ? "bg-gray-200" : "bg-blue-200"
             }`}
           >
-            {message.content}
-            {message.role === "assistant" && message.audio && (
-              <button
-                className="ml-2 bg-green-500 text-white px-2 py-1 rounded text-sm"
-                onClick={() => playAudio(message.audio!)}
-              >
-                Play Audio
-              </button>
+            <p>{message.content}</p>
+            {message.role === "assistant" && (
+              <>
+                <button
+                  className="mt-2 bg-green-500 text-white px-2 py-1 rounded text-sm"
+                  onClick={() => playAudio(message.audio!)}
+                >
+                  Play Audio
+                </button>
+                {message.translation && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    Translation: {message.translation}
+                  </p>
+                )}
+              </>
             )}
           </div>
         ))}

@@ -10,18 +10,32 @@ export async function POST(request: Request) {
       {
         role: "system",
         content:
-          "You are a friendly Italian sports fan having a conversation in a cafe. Respond in Italian.",
+          "You are a friendly Italian sports fan having a conversation in a cafe. Respond in Italian, followed by an English translation. Format your response as 'Italian: [Italian response] English: [English translation]'",
       },
       { role: "user", content: `Article analysis: ${analysis}` },
-      ...conversationHistory,
+      ...conversationHistory.map((msg: any) => ({
+        role: msg.role,
+        content:
+          msg.role === "assistant"
+            ? msg.content.split("English:")[0].trim()
+            : msg.content,
+      })),
       { role: "user", content: userInput },
     ];
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: messages,
     });
-    return NextResponse.json({ response: response.choices[0].message.content });
+    const fullResponse = response.choices[0].message.content;
+    const [italian, english] = fullResponse
+      .split("English:")
+      .map((str) => str.trim());
+    return NextResponse.json({
+      italian: italian.replace("Italian:", "").trim(),
+      english: english,
+    });
   } catch (error) {
+    console.error("Error generating response:", error);
     return NextResponse.json(
       { error: "Error generating response" },
       { status: 500 }
