@@ -38,7 +38,18 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
   const fetchCards = async () => {
     const { data: cardsData } = await supabase
       .from("cards")
-      .select(`id, text, translations (id, text, language_id)`)
+      .select(
+        `
+      id, 
+      text, 
+      translations (
+        id, 
+        text, 
+        language_id,
+        examples (id, text, translation)
+      )
+    `
+      )
       .eq("card_set_id", card_set_id);
     setCards(cardsData || []);
   };
@@ -64,21 +75,39 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
 
   const handleAddCard = async (newCard: NewCard) => {
     try {
-      const { data, error } = await supabase
+      const { data: cardData, error: cardError } = await supabase
         .from("cards")
         .insert({ text: newCard.text, card_set_id })
         .select()
         .single();
 
-      if (error) throw error;
+      if (cardError) throw cardError;
 
-      const translationPromises = newCard.translations.map((translation) =>
-        supabase
-          .from("translations")
-          .insert({ card_id: data.id, ...translation })
-      );
+      for (const translation of newCard.translations) {
+        const { data: translationData, error: translationError } =
+          await supabase
+            .from("translations")
+            .insert({
+              card_id: cardData.id,
+              text: translation.text,
+              language_id: translation.language_id,
+            })
+            .select()
+            .single();
 
-      await Promise.all(translationPromises);
+        if (translationError) throw translationError;
+
+        const examplePromises = translation.examples.map((example) =>
+          supabase.from("examples").insert({
+            translation_id: translationData.id,
+            card_id: cardData.id,
+            text: example.text,
+            translation: example.translation,
+          })
+        );
+
+        await Promise.all(examplePromises);
+      }
 
       toast.success("Card added successfully");
       fetchCards();

@@ -1,62 +1,103 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
+import { FlagIcon } from "react-flag-kit";
 
-export default function Card({
-  card,
-  languageMap,
-}: {
-  card: any;
-  languageMap: Record<string, { name: string; iso_2: string }>;
-}) {
-  const [unblurredTranslations, setUnblurredTranslations] = useState<string[]>(
+interface Example {
+  id: string;
+  text: string;
+  translation: string;
+}
+
+interface Translation {
+  id: string;
+  text: string;
+  language_id: string;
+  examples: Example[];
+}
+
+interface CardProps {
+  card: {
+    id: string;
+    text: string;
+    translations: Translation[];
+  };
+  languageMap: {
+    [key: string]: { name: string; iso_2: string };
+  };
+}
+
+export default function Card({ card, languageMap }: CardProps) {
+  const [expandedTranslations, setExpandedTranslations] = useState<string[]>(
     []
   );
 
-  const toggleBlur = (translationId: string) => {
-    setUnblurredTranslations((prev) =>
+  const toggleExpand = (translationId: string) => {
+    setExpandedTranslations((prev) =>
       prev.includes(translationId)
         ? prev.filter((id) => id !== translationId)
         : [...prev, translationId]
     );
   };
 
+  const MAX_EXAMPLES = 3;
+
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4">
-        <h3 className="text-xl font-semibold">{card.text}</h3>
+    <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4">
+        <h2 className="text-2xl font-bold text-white">{card.text}</h2>
       </div>
-      <div className="p-4">
-        <h4 className="text-lg font-medium mb-3 text-gray-700">
-          {/* Translations: */}
-        </h4>
-        <ul className="space-y-3">
-          {card.translations?.map((translation: any) => {
-            const language = languageMap?.[translation.language_id];
-            const isUnblurred = unblurredTranslations.includes(translation.id);
-            return (
-              <li
-                key={translation.id}
-                className="flex items-center cursor-pointer"
-                onClick={() => toggleBlur(translation.id)}
-              >
-                <span className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full mr-3 text-sm font-medium text-gray-600">
-                  {language?.iso_2.toUpperCase()}
-                </span>
-                <div>
-                  {/* <span className="text-sm text-gray-500">
-                    {language?.name}:
-                  </span> */}
-                  <p
-                    className={`text-gray-800 ${isUnblurred ? "" : "blur-sm"}`}
+      <div className="divide-y divide-gray-200">
+        {card.translations.map((translation) => (
+          <div key={translation.id} className="p-6">
+            <div className="flex items-center mb-4">
+              <FlagIcon
+                code={
+                  languageMap[translation.language_id]?.iso_2.toUpperCase() ||
+                  "XX"
+                }
+                size={24}
+                className="mr-3"
+              />
+              <span className="text-xl text-gray-900">{translation.text}</span>
+            </div>
+            {translation.examples.length > 0 && (
+              <div className="mt-4 pl-9">
+                {" "}
+                {/* Indent examples to align with translation text */}
+                <ul className="space-y-2">
+                  {translation.examples
+                    .slice(
+                      0,
+                      expandedTranslations.includes(translation.id)
+                        ? undefined
+                        : MAX_EXAMPLES
+                    )
+                    .map((example) => (
+                      <li
+                        key={example.id}
+                        className="bg-gray-50 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow duration-300"
+                      >
+                        <p className="text-sm text-gray-800">
+                          {example.translation}
+                        </p>
+                      </li>
+                    ))}
+                </ul>
+                {translation.examples.length > MAX_EXAMPLES && (
+                  <button
+                    onClick={() => toggleExpand(translation.id)}
+                    className="mt-2 text-sm text-blue-500 hover:text-blue-700 focus:outline-none"
                   >
-                    {translation.text}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                    {expandedTranslations.includes(translation.id)
+                      ? "Show Less"
+                      : "Show More"}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

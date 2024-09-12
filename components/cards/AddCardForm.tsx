@@ -26,109 +26,209 @@ interface AddCardFormProps {
 export default function AddCardForm({
   languages,
   onAddCard,
-  initialText,
+  initialText = "",
 }: AddCardFormProps) {
-  const [newCard, setNewCard] = useState<NewCard>({
-    text: initialText,
-    translations: [],
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const [text, setText] = useState(initialText);
+  const [translations, setTranslations] = useState<Translation[]>([
+    { text: "", language_id: "", examples: [] },
+  ]);
 
   useEffect(() => {
-    setNewCard((prevCard) => ({
-      ...prevCard,
-      text: initialText,
-    }));
+    setText(initialText);
   }, [initialText]);
 
   const handleTranslationChange = (
     index: number,
-    field: "text" | "language_id",
+    field: keyof Translation,
     value: string
   ) => {
-    const updatedTranslations = [...newCard.translations];
-    updatedTranslations[index] = {
-      ...updatedTranslations[index],
-      [field]: value,
-    };
-    setNewCard({ ...newCard, translations: updatedTranslations });
+    const newTranslations = [...translations];
+    newTranslations[index] = { ...newTranslations[index], [field]: value };
+    setTranslations(newTranslations);
   };
 
-  const addTranslationField = () => {
-    setNewCard({
-      ...newCard,
-      translations: [...newCard.translations, { text: "", language_id: "" }],
+  const handleExampleChange = (
+    translationIndex: number,
+    exampleIndex: number,
+    field: keyof Example,
+    value: string
+  ) => {
+    const newTranslations = [...translations];
+    newTranslations[translationIndex].examples[exampleIndex] = {
+      ...newTranslations[translationIndex].examples[exampleIndex],
+      [field]: value,
+    };
+    setTranslations(newTranslations);
+  };
+
+  const addTranslation = () => {
+    setTranslations([
+      ...translations,
+      { text: "", language_id: "", examples: [] },
+    ]);
+  };
+
+  const addExample = (translationIndex: number) => {
+    const newTranslations = [...translations];
+    newTranslations[translationIndex].examples.push({
+      text: "",
+      translation: "",
     });
+    setTranslations(newTranslations);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    try {
-      await onAddCard(newCard);
-      setNewCard({ text: "", translations: [] });
-    } catch (error) {
-      console.error("Error adding card:", error);
-    } finally {
-      setIsLoading(false);
+    if (
+      !text.trim() ||
+      translations.some((t) => !t.text.trim() || !t.language_id)
+    ) {
+      toast.error("Please fill in all required fields");
+      return;
     }
+    const newCard: NewCard = {
+      text,
+      translations: translations
+        .map((t) => ({
+          ...t,
+          examples: t.examples.filter(
+            (ex) => ex.text.trim() && ex.translation.trim()
+          ),
+        }))
+        .filter((t) => t.text.trim() && t.language_id),
+    };
+    await onAddCard(newCard);
+    setText("");
+    setTranslations([{ text: "", language_id: "", examples: [] }]);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
+        <label
+          htmlFor="text"
+          className="block text-sm font-medium text-gray-700"
+        >
+          Card Text
+        </label>
         <input
           type="text"
-          value={newCard.text}
-          onChange={(e) => setNewCard({ ...newCard, text: e.target.value })}
-          placeholder="Enter new card text"
-          className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          id="text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           required
         />
       </div>
-      {newCard.translations.map((translation, index) => (
-        <div key={index} className="flex space-x-2">
-          <input
-            type="text"
-            value={translation.text}
-            onChange={(e) =>
-              handleTranslationChange(index, "text", e.target.value)
-            }
-            placeholder="Translation"
-            className="flex-1 p-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-          <select
-            value={translation.language_id}
-            onChange={(e) =>
-              handleTranslationChange(index, "language_id", e.target.value)
-            }
-            className="p-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Select Language</option>
-            {languages.map((lang) => (
-              <option key={lang.id} value={lang.id}>
-                {lang.name}
-              </option>
+      {translations.map((translation, translationIndex) => (
+        <div key={translationIndex} className="space-y-4 border-t pt-4">
+          <div>
+            <label
+              htmlFor={`translation-${translationIndex}`}
+              className="block text-sm font-medium text-gray-700"
+            >
+              Translation {translationIndex + 1}
+            </label>
+            <input
+              type="text"
+              id={`translation-${translationIndex}`}
+              value={translation.text}
+              onChange={(e) =>
+                handleTranslationChange(
+                  translationIndex,
+                  "text",
+                  e.target.value
+                )
+              }
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              required
+            />
+          </div>
+          <div>
+            <label
+              htmlFor={`language-${translationIndex}`}
+              className="block text-sm font-medium text-gray-700"
+            >
+              Language
+            </label>
+            <select
+              id={`language-${translationIndex}`}
+              value={translation.language_id}
+              onChange={(e) =>
+                handleTranslationChange(
+                  translationIndex,
+                  "language_id",
+                  e.target.value
+                )
+              }
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              required
+            >
+              <option value="">Select a language</option>
+              {languages.map((lang) => (
+                <option key={lang.id} value={lang.id}>
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <h4 className="font-medium text-gray-700">Examples</h4>
+            {translation.examples.map((example, exampleIndex) => (
+              <div key={exampleIndex} className="flex space-x-2">
+                <input
+                  type="text"
+                  value={example.text}
+                  onChange={(e) =>
+                    handleExampleChange(
+                      translationIndex,
+                      exampleIndex,
+                      "text",
+                      e.target.value
+                    )
+                  }
+                  placeholder="Example"
+                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                />
+                <input
+                  type="text"
+                  value={example.translation}
+                  onChange={(e) =>
+                    handleExampleChange(
+                      translationIndex,
+                      exampleIndex,
+                      "translation",
+                      e.target.value
+                    )
+                  }
+                  placeholder="Example Translation"
+                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                />
+              </div>
             ))}
-          </select>
+            <button
+              type="button"
+              onClick={() => addExample(translationIndex)}
+              className="mt-2 px-3 py-1 text-sm border border-transparent rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              Add Example
+            </button>
+          </div>
         </div>
       ))}
-      <div>
-        <button
-          type="button"
-          onClick={addTranslationField}
-          className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
-        >
-          Add Translation
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={addTranslation}
+        className="mt-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+      >
+        Add Translation
+      </button>
       <div>
         <button
           type="submit"
-          disabled={isLoading}
-          className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          {isLoading ? "Adding..." : "Add Card"}
+          Add Card
         </button>
       </div>
     </form>
