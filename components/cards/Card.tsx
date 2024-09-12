@@ -25,9 +25,16 @@ interface CardProps {
   languageMap: {
     [key: string]: { name: string; iso_2: string };
   };
+  onEdit: (card: CardProps["card"]) => void;
+  onDelete: (cardId: string) => void;
 }
 
-export default function Card({ card, languageMap }: CardProps) {
+export default function Card({
+  card,
+  languageMap,
+  onEdit,
+  onDelete,
+}: CardProps) {
   const [expandedTranslations, setExpandedTranslations] = useState<string[]>(
     []
   );
@@ -44,8 +51,22 @@ export default function Card({ card, languageMap }: CardProps) {
 
   return (
     <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4">
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4 flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">{card.text}</h2>
+        <div>
+          <button
+            onClick={() => onEdit(card)}
+            className="text-white hover:text-gray-200 mr-2"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onDelete(card.id)}
+            className="text-white hover:text-gray-200"
+          >
+            Delete
+          </button>
+        </div>
       </div>
       <div className="divide-y divide-gray-200">
         {card.translations.map((translation) => (

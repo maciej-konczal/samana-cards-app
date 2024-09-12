@@ -27,6 +27,7 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
   const [activeView, setActiveView] = useState<
     "extract" | "add" | "bulk" | null
   >("add");
+  const [editingCard, setEditingCard] = useState(null);
 
   const supabase = createClient();
 
@@ -114,6 +115,156 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
     } catch (error) {
       console.error("Error adding card:", error);
       toast.error("Failed to add card");
+    }
+  };
+
+  const handleEditCard = (card) => {
+    setEditingCard(card);
+    setActiveView("add");
+  };
+
+  const handleDeleteCard = async (cardId: string) => {
+    try {
+      // First, delete all examples associated with the card's translations
+      const { error: examplesError } = await supabase
+        .from("examples")
+        .delete()
+        .eq("card_id", cardId);
+
+      if (examplesError) throw examplesError;
+
+      // Then, delete all translations associated with the card
+      const { error: translationsError } = await supabase
+        .from("translations")
+        .delete()
+        .eq("card_id", cardId);
+
+      if (translationsError) throw translationsError;
+
+      // Finally, delete the card itself
+      const { error: cardError } = await supabase
+        .from("cards")
+        .delete()
+        .eq("id", cardId);
+
+      if (cardError) throw cardError;
+
+      toast.success("Card deleted successfully");
+      fetchCards();
+    } catch (error) {
+      console.error("Error deleting card:", error);
+      toast.error("Failed to delete card");
+    }
+  };
+
+  const handleUpdateCard = async (updatedCard: NewCard) => {
+    try {
+      // Update the card text
+      const { data: cardData, error: cardError } = await supabase
+        .from("cards")
+        .update({ text: updatedCard.text })
+        .eq("id", updatedCard.id)
+        .select()
+        .single();
+
+      if (cardError) throw cardError;
+
+      // Fetch existing translations for this card
+      const { data: existingTranslations, error: fetchError } = await supabase
+        .from("translations")
+        .select("id, language_id, text")
+        .eq("card_id", updatedCard.id);
+
+      if (fetchError) throw fetchError;
+
+      // Create a map of existing translations for easy lookup
+      const existingTranslationMap = new Map(
+        existingTranslations.map((t) => [t.language_id, t])
+      );
+
+      // Update or insert translations and examples
+      for (const translation of updatedCard.translations) {
+        const existingTranslation = existingTranslationMap.get(
+          translation.language_id
+        );
+
+        if (existingTranslation) {
+          // Update existing translation if the text has changed
+          if (existingTranslation.text !== translation.text) {
+            const { error: updateError } = await supabase
+              .from("translations")
+              .update({ text: translation.text })
+              .eq("id", existingTranslation.id);
+
+            if (updateError) throw updateError;
+          }
+
+          // Delete existing examples for this translation
+          const { error: deleteExamplesError } = await supabase
+            .from("examples")
+            .delete()
+            .eq("translation_id", existingTranslation.id);
+
+          if (deleteExamplesError) throw deleteExamplesError;
+
+          // Insert new examples
+          const examplePromises = translation.examples.map((example) =>
+            supabase.from("examples").insert({
+              translation_id: existingTranslation.id,
+              card_id: updatedCard.id,
+              text: example.text,
+              translation: example.translation,
+            })
+          );
+
+          await Promise.all(examplePromises);
+
+          // Remove this translation from the map of existing translations
+          existingTranslationMap.delete(translation.language_id);
+        } else {
+          // Insert new translation
+          const { data: newTranslation, error: insertError } = await supabase
+            .from("translations")
+            .insert({
+              card_id: updatedCard.id,
+              text: translation.text,
+              language_id: translation.language_id,
+            })
+            .select()
+            .single();
+
+          if (insertError) throw insertError;
+
+          // Insert new examples
+          const examplePromises = translation.examples.map((example) =>
+            supabase.from("examples").insert({
+              translation_id: newTranslation.id,
+              card_id: updatedCard.id,
+              text: example.text,
+              translation: example.translation,
+            })
+          );
+
+          await Promise.all(examplePromises);
+        }
+      }
+
+      // Delete any remaining translations that weren't in the updated data
+      for (const [languageId, translation] of existingTranslationMap) {
+        const { error: deleteTranslationError } = await supabase
+          .from("translations")
+          .delete()
+          .eq("id", translation.id);
+
+        if (deleteTranslationError) throw deleteTranslationError;
+      }
+
+      toast.success("Card updated successfully");
+      fetchCards();
+      setEditingCard(null);
+    } catch (error) {
+      console.error("Error updating card:", error);
+      toast.error("Failed to update card");
     }
   };
 
@@ -226,8 +377,8 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
         {activeView === "add" && (
           <AddCardForm
             languages={languages}
-            onAddCard={handleAddCard}
-            initialText={selectedText}
+            onAddCard={editingCard ? handleUpdateCard : handleAddCard}
+            initialCard={editingCard}
           />
         )}
 
@@ -243,7 +394,13 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
         <h2 className="text-2xl font-semibold mb-6">Your Cards</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cards.map((card) => (
-            <Card key={card.id} card={card} languageMap={languageMap} />
+            <Card
+              key={card.id}
+              card={card}
+              languageMap={languageMap}
+              onEdit={handleEditCard}
+              onDelete={handleDeleteCard}
+            />
           ))}
         </div>
       </div>
