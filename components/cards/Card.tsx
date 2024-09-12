@@ -63,8 +63,6 @@ export default function Card({ card, languageMap }: CardProps) {
             </div>
             {translation.examples.length > 0 && (
               <div className="mt-4 pl-9">
-                {" "}
-                {/* Indent examples to align with translation text */}
                 <ul className="space-y-2">
                   {translation.examples
                     .slice(
@@ -76,11 +74,14 @@ export default function Card({ card, languageMap }: CardProps) {
                     .map((example) => (
                       <li
                         key={example.id}
-                        className="bg-gray-50 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow duration-300"
+                        className="bg-gray-50 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow duration-300 relative group"
                       >
                         <p className="text-sm text-gray-800">
                           {example.translation}
                         </p>
+                        <div className="absolute left-0 right-0 top-0 transform -translate-y-full bg-gray-800 text-white p-2 rounded-md text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          {example.text}
+                        </div>
                       </li>
                     ))}
                 </ul>
