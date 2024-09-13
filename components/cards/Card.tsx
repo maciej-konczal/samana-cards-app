@@ -98,11 +98,9 @@ export default function Card({
                         key={example.id}
                         className="bg-gray-50 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow duration-300 relative group"
                       >
-                        <p className="text-sm text-gray-800">
-                          {example.translation}
-                        </p>
+                        <p className="text-sm text-gray-800">{example.text}</p>
                         <div className="absolute left-0 right-0 top-0 transform -translate-y-full bg-gray-800 text-white p-2 rounded-md text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          {example.text}
+                          {example.translation}
                         </div>
                       </li>
                     ))}
