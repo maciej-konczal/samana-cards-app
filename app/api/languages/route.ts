@@ -5,7 +5,7 @@ export async function GET() {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("languages")
-    .select("id, name, iso_2");
+    .select("id, name, iso_2, flag_emoji");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

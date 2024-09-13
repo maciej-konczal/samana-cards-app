@@ -24,7 +24,7 @@ interface CardProps {
     translations: Translation[];
   };
   languageMap: {
-    [key: string]: { name: string; iso_2: string };
+    [key: string]: { name: string; iso_2: string; flag_emoji: string };
   };
   onEdit: (card: CardProps["card"]) => void;
   onDelete: (cardId: string) => void;
@@ -75,8 +75,9 @@ export default function Card({
             <div className="flex items-center mb-4">
               <FlagIcon
                 code={
-                  languageMap[translation.language_id]?.iso_2.toUpperCase() ||
-                  "XX"
+                  languageMap[
+                    translation.language_id
+                  ]?.flag_emoji.toUpperCase() || "XX"
                 }
                 size={24}
                 className="mr-3"

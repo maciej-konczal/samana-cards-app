@@ -62,12 +62,16 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
   const fetchLanguages = async () => {
     const { data: languagesData } = await supabase
       .from("languages")
-      .select(`id, name, iso_2`);
+      .select(`id, name, iso_2, flag_emoji`);
     setLanguages(languagesData || []);
   };
 
   const languageMap = languages.reduce((acc, lang) => {
-    acc[lang.id] = { name: lang.name, iso_2: lang.iso_2 };
+    acc[lang.id] = {
+      name: lang.name,
+      iso_2: lang.iso_2,
+      flag_emoji: lang.flag_emoji,
+    };
     return acc;
   }, {});
 

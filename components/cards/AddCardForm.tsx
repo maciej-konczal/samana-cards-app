@@ -14,6 +14,7 @@ interface Language {
   id: string;
   name: string;
   iso_2: string;
+  flag_emoji: string;
 }
 
 interface Translation {
@@ -302,7 +303,7 @@ export default function AddCardForm({
                   code={
                     languages
                       .find((l) => l.id === sourceLanguageId)
-                      ?.iso_2.toUpperCase() || "XX"
+                      ?.flag_emoji.toUpperCase() || "XX"
                   }
                   size={24}
                 />
@@ -367,7 +368,7 @@ export default function AddCardForm({
                       code={
                         languages
                           .find((l) => l.id === translation.language_id)
-                          ?.iso_2.toUpperCase() || "XX"
+                          ?.flag_emoji.toUpperCase() || "XX"
                       }
                       size={24}
                     />
@@ -382,61 +383,65 @@ export default function AddCardForm({
                 <XCircleIcon className="h-6 w-6" />
               </button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-4">
               {translation.examples.map((example, exampleIndex) => (
-                <div
-                  key={example.id || exampleIndex}
-                  className="flex items-center space-x-2"
-                >
-                  <input
-                    type="text"
-                    value={example.text}
-                    onChange={(e) =>
-                      handleExampleChange(
-                        translationIndex,
-                        exampleIndex,
-                        "text",
-                        e.target.value
-                      )
-                    }
-                    placeholder="Example"
-                    className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                  />
-                  <div className="flex-grow relative">
+                <div key={example.id || exampleIndex} className="space-y-2">
+                  <div className="flex items-center space-x-2">
                     <input
                       type="text"
-                      value={example.translation}
+                      value={example.text}
                       onChange={(e) =>
                         handleExampleChange(
                           translationIndex,
                           exampleIndex,
-                          "translation",
+                          "text",
                           e.target.value
                         )
                       }
-                      placeholder="Example Translation"
-                      className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      placeholder="Example"
+                      className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                     <button
                       type="button"
                       onClick={() =>
-                        handleSuggestTranslation(translationIndex, exampleIndex)
+                        removeExample(translationIndex, exampleIndex)
                       }
-                      className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
-                      title="Suggest example translation"
+                      className="text-red-600 hover:text-red-800"
                     >
-                      <LanguageIcon className="h-5 w-5" />
+                      <XCircleIcon className="h-6 w-6" />
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      removeExample(translationIndex, exampleIndex)
-                    }
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <XCircleIcon className="h-6 w-6" />
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <div className="flex-grow relative">
+                      <input
+                        type="text"
+                        value={example.translation}
+                        onChange={(e) =>
+                          handleExampleChange(
+                            translationIndex,
+                            exampleIndex,
+                            "translation",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Example Translation"
+                        className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleSuggestTranslation(
+                            translationIndex,
+                            exampleIndex
+                          )
+                        }
+                        className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                        title="Suggest example translation"
+                      >
+                        <LanguageIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
               <button
