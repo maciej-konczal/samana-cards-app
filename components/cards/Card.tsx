@@ -20,6 +20,7 @@ interface CardProps {
   card: {
     id: string;
     text: string;
+    language_id: string;
     translations: Translation[];
   };
   languageMap: {

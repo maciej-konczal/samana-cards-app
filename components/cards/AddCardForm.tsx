@@ -22,6 +22,14 @@ interface Example {
 
 interface NewCard {
   text: string;
+  language_id: string;
+  translations: (Translation & { examples: Example[] })[];
+}
+
+interface CardType {
+  id: string;
+  text: string;
+  language_id: string;
   translations: (Translation & { examples: Example[] })[];
 }
 
@@ -29,6 +37,8 @@ interface AddCardFormProps {
   languages: Language[];
   onAddCard: (card: NewCard) => Promise<void>;
   initialCard?: CardType;
+  onRemoveTranslation?: (translationId: string) => Promise<void>;
+  onRemoveExample?: (exampleId: string) => Promise<void>;
 }
 
 export default function AddCardForm({
@@ -39,6 +49,9 @@ export default function AddCardForm({
   onRemoveExample,
 }: AddCardFormProps) {
   const [text, setText] = useState(initialCard?.text || "");
+  const [sourceLanguageId, setSourceLanguageId] = useState(
+    initialCard?.language_id || languages[0]?.id || ""
+  );
   const [translations, setTranslations] = useState<
     (Translation & { examples: Example[] })[]
   >(
@@ -50,9 +63,11 @@ export default function AddCardForm({
   useEffect(() => {
     if (initialCard) {
       setText(initialCard.text);
+      setSourceLanguageId(initialCard.language_id);
       setTranslations(initialCard.translations);
     } else {
       setText("");
+      setSourceLanguageId(languages[0]?.id || "");
       setTranslations([
         {
           text: "",
@@ -61,7 +76,7 @@ export default function AddCardForm({
         },
       ]);
     }
-  }, [initialCard]);
+  }, [initialCard, languages]);
 
   const handleTranslationChange = (
     index: number,
@@ -149,6 +164,7 @@ export default function AddCardForm({
     e.preventDefault();
     if (
       !text.trim() ||
+      !sourceLanguageId ||
       translations.some((t) => !t.text.trim() || !t.language_id)
     ) {
       toast.error("Please fill in all required fields");
@@ -157,6 +173,7 @@ export default function AddCardForm({
     const newCard: NewCard = {
       id: initialCard?.id,
       text,
+      language_id: sourceLanguageId,
       translations: translations
         .map((t) => ({
           ...t,
@@ -169,6 +186,7 @@ export default function AddCardForm({
     await onAddCard(newCard);
     if (!initialCard) {
       setText("");
+      setSourceLanguageId(languages[0]?.id || "");
       setTranslations([
         {
           text: "",
@@ -178,6 +196,8 @@ export default function AddCardForm({
       ]);
     }
   };
+
+  console.log("Current sourceLanguageId:", sourceLanguageId);
 
   return (
     <form
@@ -205,6 +225,39 @@ export default function AddCardForm({
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             required
           />
+        </div>
+        <div className="flex-shrink-0 w-full relative">
+          <label
+            htmlFor="source-language"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Source Language
+          </label>
+          <select
+            id="source-language"
+            value={sourceLanguageId}
+            onChange={(e) => setSourceLanguageId(e.target.value)}
+            className="w-full pl-12 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900 appearance-none"
+            required
+          >
+            {languages.map((lang) => (
+              <option key={lang.id} value={lang.id}>
+                {lang.name}
+              </option>
+            ))}
+          </select>
+          {sourceLanguageId && (
+            <div className="absolute left-3 top-8 pointer-events-none">
+              <FlagIcon
+                code={
+                  languages
+                    .find((l) => l.id === sourceLanguageId)
+                    ?.iso_2.toUpperCase() || "XX"
+                }
+                size={24}
+              />
+            </div>
+          )}
         </div>
         {translations.map((translation, translationIndex) => (
           <div

@@ -15,6 +15,7 @@ interface UnderlinedText {
 
 interface NewCard {
   text: string;
+  language_id: string;
   translations: { text: string; language_id: string }[];
 }
 
@@ -44,6 +45,7 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
         `
         id, 
         text, 
+        language_id,
         translations (
           id, 
           text, 
@@ -80,7 +82,11 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
     try {
       const { data: cardData, error: cardError } = await supabase
         .from("cards")
-        .insert({ text: newCard.text, card_set_id })
+        .insert({
+          text: newCard.text,
+          card_set_id,
+          language_id: newCard.language_id, // Add this line
+        })
         .select()
         .single();
 
@@ -121,7 +127,14 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
   };
 
   const handleEditCard = (card) => {
-    setEditingCard(card);
+    console.log("card:", JSON.stringify(card));
+    // Ensure we're passing the full card object, including the language_id
+    setEditingCard({
+      id: card.id,
+      text: card.text,
+      language_id: card.language_id,
+      translations: card.translations,
+    });
     setActiveView("add");
     setTimeout(() => {
       addCardFormRef.current?.scrollIntoView({ behavior: "smooth" });
