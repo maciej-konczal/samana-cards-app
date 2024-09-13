@@ -3,7 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { FlagIcon } from "react-flag-kit";
-import { XCircleIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
+import {
+  XCircleIcon,
+  PlusCircleIcon,
+  LanguageIcon,
+} from "@heroicons/react/24/outline";
+import { getDeepLTranslationSuggestion } from "../../utils/deeplTranslationService";
 
 interface Language {
   id: string;
@@ -161,6 +166,34 @@ export default function AddCardForm({
     setTranslations(newTranslations);
   };
 
+  const handleSuggestTranslation = async (translationIndex: number) => {
+    const targetLang =
+      languages.find(
+        (lang) => lang.id === translations[translationIndex].language_id
+      )?.iso_2 || "";
+
+    if (targetLang) {
+      try {
+        const suggestion = await getDeepLTranslationSuggestion(
+          text,
+          targetLang
+        );
+        if (suggestion) {
+          const updatedTranslations = [...translations];
+          updatedTranslations[translationIndex].text = suggestion;
+          setTranslations(updatedTranslations);
+          toast.success("Translation suggestion applied.");
+        } else {
+          toast.info("No suggestion available for this text.");
+        }
+      } catch (error) {
+        toast.error("Failed to get translation suggestion.");
+      }
+    } else {
+      toast.error("Please select a target language.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -267,7 +300,7 @@ export default function AddCardForm({
             className="bg-gray-50 p-4 rounded-lg space-y-4"
           >
             <div className="flex items-center space-x-4">
-              <div className="flex-grow">
+              <div className="flex-grow relative">
                 <input
                   type="text"
                   value={translation.text}
@@ -279,9 +312,17 @@ export default function AddCardForm({
                     )
                   }
                   placeholder="Translation"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => handleSuggestTranslation(translationIndex)}
+                  className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                  title="Suggest translation"
+                >
+                  <LanguageIcon className="h-5 w-5" />
+                </button>
               </div>
               <div className="flex-shrink-0 w-48 relative">
                 <select
