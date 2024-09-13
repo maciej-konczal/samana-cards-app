@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Card from "./Card";
 import BulkCardImport from "./BulkCardImport";
@@ -28,6 +28,7 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
     "extract" | "add" | "bulk" | null
   >("add");
   const [editingCard, setEditingCard] = useState(null);
+  const addCardFormRef = useRef(null);
 
   const supabase = createClient();
 
@@ -41,17 +42,18 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
       .from("cards")
       .select(
         `
-      id, 
-      text, 
-      translations (
         id, 
         text, 
-        language_id,
-        examples (id, text, translation)
+        translations (
+          id, 
+          text, 
+          language_id,
+          examples (id, text, translation)
+        )
+      `
       )
-    `
-      )
-      .eq("card_set_id", card_set_id);
+      .eq("card_set_id", card_set_id)
+      .order("created_at", { ascending: false }); // Order by creation date, newest first
     setCards(cardsData || []);
   };
 
@@ -121,40 +123,9 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
   const handleEditCard = (card) => {
     setEditingCard(card);
     setActiveView("add");
-  };
-
-  const handleDeleteCard = async (cardId: string) => {
-    try {
-      // First, delete all examples associated with the card's translations
-      const { error: examplesError } = await supabase
-        .from("examples")
-        .delete()
-        .eq("card_id", cardId);
-
-      if (examplesError) throw examplesError;
-
-      // Then, delete all translations associated with the card
-      const { error: translationsError } = await supabase
-        .from("translations")
-        .delete()
-        .eq("card_id", cardId);
-
-      if (translationsError) throw translationsError;
-
-      // Finally, delete the card itself
-      const { error: cardError } = await supabase
-        .from("cards")
-        .delete()
-        .eq("id", cardId);
-
-      if (cardError) throw cardError;
-
-      toast.success("Card deleted successfully");
-      fetchCards();
-    } catch (error) {
-      console.error("Error deleting card:", error);
-      toast.error("Failed to delete card");
-    }
+    setTimeout(() => {
+      addCardFormRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
   };
 
   const handleUpdateCard = async (updatedCard: NewCard) => {
@@ -260,11 +231,46 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
       }
 
       toast.success("Card updated successfully");
-      fetchCards();
+      await fetchCards(); // Refetch cards to get the updated order
       setEditingCard(null);
+      setActiveView("add"); // Reset to add view
     } catch (error) {
       console.error("Error updating card:", error);
       toast.error("Failed to update card");
+    }
+  };
+
+  const handleDeleteCard = async (cardId: string) => {
+    try {
+      // First, delete all examples associated with the card's translations
+      const { error: examplesError } = await supabase
+        .from("examples")
+        .delete()
+        .eq("card_id", cardId);
+
+      if (examplesError) throw examplesError;
+
+      // Then, delete all translations associated with the card
+      const { error: translationsError } = await supabase
+        .from("translations")
+        .delete()
+        .eq("card_id", cardId);
+
+      if (translationsError) throw translationsError;
+
+      // Finally, delete the card itself
+      const { error: cardError } = await supabase
+        .from("cards")
+        .delete()
+        .eq("id", cardId);
+
+      if (cardError) throw cardError;
+
+      toast.success("Card deleted successfully");
+      fetchCards();
+    } catch (error) {
+      console.error("Error deleting card:", error);
+      toast.error("Failed to delete card");
     }
   };
 
@@ -304,6 +310,34 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
     toast.success("Bulk import completed");
   };
 
+  const handleRemoveTranslation = async (translationId: string) => {
+    try {
+      const { error } = await supabase
+        .from("translations")
+        .delete()
+        .eq("id", translationId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error removing translation:", error);
+      throw error;
+    }
+  };
+
+  const handleRemoveExample = async (exampleId: string) => {
+    try {
+      const { error } = await supabase
+        .from("examples")
+        .delete()
+        .eq("id", exampleId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error removing example:", error);
+      throw error;
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-12">
       <div className="flex justify-center space-x-6 mb-8">
@@ -339,7 +373,7 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div ref={addCardFormRef} className="bg-white rounded-lg shadow-md p-6">
         {activeView === "extract" && (
           <div className="space-y-8">
             <ExtractUnderlinedText onExtract={handleExtractedText} />
@@ -379,6 +413,9 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
             languages={languages}
             onAddCard={editingCard ? handleUpdateCard : handleAddCard}
             initialCard={editingCard}
+            onRemoveTranslation={handleRemoveTranslation}
+            onRemoveExample={handleRemoveExample}
+            key={editingCard ? editingCard.id : "add"}
           />
         )}
 

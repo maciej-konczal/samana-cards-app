@@ -35,6 +35,8 @@ export default function AddCardForm({
   languages,
   onAddCard,
   initialCard,
+  onRemoveTranslation,
+  onRemoveExample,
 }: AddCardFormProps) {
   const [text, setText] = useState(initialCard?.text || "");
   const [translations, setTranslations] = useState<
@@ -49,6 +51,15 @@ export default function AddCardForm({
     if (initialCard) {
       setText(initialCard.text);
       setTranslations(initialCard.translations);
+    } else {
+      setText("");
+      setTranslations([
+        {
+          text: "",
+          language_id: "",
+          examples: [{ text: "", translation: "" }],
+        },
+      ]);
     }
   }, [initialCard]);
 
@@ -83,12 +94,54 @@ export default function AddCardForm({
     ]);
   };
 
+  const removeTranslation = async (index: number) => {
+    if (initialCard && translations[index].id && onRemoveTranslation) {
+      try {
+        await onRemoveTranslation(translations[index].id);
+        toast.success("Translation removed successfully");
+      } catch (error) {
+        console.error("Error removing translation:", error);
+        toast.error("Failed to remove translation");
+        return;
+      }
+    }
+    const newTranslations = translations.filter((_, i) => i !== index);
+    setTranslations(newTranslations);
+  };
+
   const addExample = (translationIndex: number) => {
     const newTranslations = [...translations];
     newTranslations[translationIndex].examples.push({
       text: "",
       translation: "",
     });
+    setTranslations(newTranslations);
+  };
+
+  const removeExample = async (
+    translationIndex: number,
+    exampleIndex: number
+  ) => {
+    if (
+      initialCard &&
+      translations[translationIndex].examples[exampleIndex].id &&
+      onRemoveExample
+    ) {
+      try {
+        await onRemoveExample(
+          translations[translationIndex].examples[exampleIndex].id
+        );
+        toast.success("Example removed successfully");
+      } catch (error) {
+        console.error("Error removing example:", error);
+        toast.error("Failed to remove example");
+        return;
+      }
+    }
+    const newTranslations = [...translations];
+    newTranslations[translationIndex].examples = newTranslations[
+      translationIndex
+    ].examples.filter((_, i) => i !== exampleIndex);
     setTranslations(newTranslations);
   };
 
@@ -155,7 +208,7 @@ export default function AddCardForm({
         </div>
         {translations.map((translation, translationIndex) => (
           <div
-            key={translationIndex}
+            key={translation.id || translationIndex}
             className="space-y-4 pt-4 border-t border-gray-200"
           >
             <div className="flex items-center space-x-4">
@@ -188,61 +241,53 @@ export default function AddCardForm({
                 >
                   Language
                 </label>
-                <div className="relative">
-                  <select
-                    id={`language-${translationIndex}`}
-                    value={translation.language_id}
-                    onChange={(e) =>
-                      handleTranslationChange(
-                        translationIndex,
-                        "language_id",
-                        e.target.value
-                      )
-                    }
-                    className="w-full pl-12 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900 appearance-none"
-                    required
-                  >
-                    <option value="">Select</option>
-                    {languages.map((lang) => (
-                      <option key={lang.id} value={lang.id}>
-                        {lang.name}
-                      </option>
-                    ))}
-                  </select>
-                  {translation.language_id && (
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <FlagIcon
-                        code={
-                          languages
-                            .find((l) => l.id === translation.language_id)
-                            ?.iso_2.toUpperCase() || "XX"
-                        }
-                        size={24}
-                      />
-                    </div>
-                  )}
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg
-                      className="h-5 w-5 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
+                <select
+                  id={`language-${translationIndex}`}
+                  value={translation.language_id}
+                  onChange={(e) =>
+                    handleTranslationChange(
+                      translationIndex,
+                      "language_id",
+                      e.target.value
+                    )
+                  }
+                  className="w-full pl-12 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900 appearance-none"
+                  required
+                >
+                  <option value="">Select</option>
+                  {languages.map((lang) => (
+                    <option key={lang.id} value={lang.id}>
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
+                {translation.language_id && (
+                  <div className="absolute left-3 top-8 pointer-events-none">
+                    <FlagIcon
+                      code={
+                        languages
+                          .find((l) => l.id === translation.language_id)
+                          ?.iso_2.toUpperCase() || "XX"
+                      }
+                      size={24}
+                    />
                   </div>
-                </div>
+                )}
               </div>
+              <button
+                type="button"
+                onClick={() => removeTranslation(translationIndex)}
+                className="mt-6 px-3 py-2 text-sm border border-transparent rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Remove Translation
+              </button>
             </div>
             <div className="space-y-2">
               {translation.examples.map((example, exampleIndex) => (
-                <div key={exampleIndex} className="flex items-center space-x-4">
+                <div
+                  key={example.id || exampleIndex}
+                  className="flex items-center space-x-4"
+                >
                   <div className="flex-grow">
                     <input
                       type="text"
@@ -275,6 +320,15 @@ export default function AddCardForm({
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     />
                   </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      removeExample(translationIndex, exampleIndex)
+                    }
+                    className="px-2 py-1 text-sm border border-transparent rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Remove Example
+                  </button>
                 </div>
               ))}
               <button
