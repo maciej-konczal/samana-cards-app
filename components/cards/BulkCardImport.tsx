@@ -6,6 +6,7 @@ interface BulkCardImportProps {
   onImport: (
     cards: {
       text: string;
+      text_language: string;
       translations: { text: string; language_id: string }[];
     }[]
   ) => void;
@@ -38,9 +39,13 @@ export default function BulkCardImport({
 
   const handleImport = () => {
     const importedCards = preview.map((row) => {
-      const card = { text: row.text, translations: [] };
+      const card = {
+        text: row.text,
+        text_language: row.text_language,
+        translations: [],
+      };
       Object.entries(row).forEach(([key, value]) => {
-        if (key !== "text" && value) {
+        if (key !== "text" && key !== "text_language" && value) {
           const language = languages.find((lang) => lang.iso_2 === key);
           if (language) {
             card.translations.push({

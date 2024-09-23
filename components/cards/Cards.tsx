@@ -295,9 +295,21 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
     setIsLoading(true);
 
     for (const card of importedCards) {
+      const sourceLanguage = languages.find(
+        (lang) => lang.iso_2 === card.text_language
+      );
+      if (!sourceLanguage) {
+        toast.error(`Invalid source language for card: ${card.text}`);
+        continue;
+      }
+
       const { data: cardData, error: cardError } = await supabase
         .from("cards")
-        .insert({ text: card.text, card_set_id: card_set_id })
+        .insert({
+          text: card.text,
+          card_set_id: card_set_id,
+          language_id: sourceLanguage.id, // Use the language_id from the source language
+        })
         .select()
         .single();
 
