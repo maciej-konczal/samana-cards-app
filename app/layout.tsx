@@ -1,8 +1,7 @@
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { createClient } from "@/utils/supabase/server";
-import AuthButton from "../components/AuthButton";
-import NavButtons from "../components/NavButtons";
+import ServerNavBar from "../components/ServerNavBar";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -13,8 +12,8 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Next.js and Supabase Starter Kit",
-  description: "The fastest way to build apps with Next.js and Supabase",
+  title: "Samana Cards",
+  description: "Learn languages with flashcards",
 };
 
 export default function RootLayout({
@@ -23,8 +22,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const canInitSupabaseClient = () => {
-    // This function is just for the interactive tutorial.
-    // Feel free to remove it once you have Supabase connected.
     try {
       createClient();
       return true;
@@ -37,14 +34,9 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={GeistSans.className}>
-      <body className="bg-background text-foreground">
-        <main className="min-h-screen flex flex-col items-center">
-          <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-            <div className="w-full max-w-4xl flex justify-between items-center p-3 text-sm">
-              {isSupabaseConnected && <NavButtons />}
-              {isSupabaseConnected && <AuthButton />}
-            </div>
-          </nav>
+      <body className="bg-gray-100 text-gray-900 flex flex-col min-h-screen">
+        {isSupabaseConnected && <ServerNavBar />}
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </main>
         <ToastContainer />

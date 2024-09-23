@@ -356,11 +356,11 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-12">
-      <div className="flex justify-center space-x-6 mb-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-8">
         <button
           onClick={() => setActiveView("extract")}
-          className={`px-6 py-3 rounded-lg font-semibold text-lg shadow-md transition-colors duration-200 ${
+          className={`px-4 py-2 rounded-lg font-semibold text-sm sm:text-base shadow-md transition-colors duration-200 ${
             activeView === "extract"
               ? "bg-blue-600 text-white hover:bg-blue-700"
               : "bg-gray-200 text-gray-800 hover:bg-gray-300"
@@ -370,7 +370,7 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
         </button>
         <button
           onClick={() => setActiveView("add")}
-          className={`px-6 py-3 rounded-lg font-semibold text-lg shadow-md transition-colors duration-200 ${
+          className={`px-4 py-2 rounded-lg font-semibold text-sm sm:text-base shadow-md transition-colors duration-200 ${
             activeView === "add"
               ? "bg-blue-600 text-white hover:bg-blue-700"
               : "bg-gray-200 text-gray-800 hover:bg-gray-300"
@@ -380,7 +380,7 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
         </button>
         <button
           onClick={() => setActiveView("bulk")}
-          className={`px-6 py-3 rounded-lg font-semibold text-lg shadow-md transition-colors duration-200 ${
+          className={`px-4 py-2 rounded-lg font-semibold text-sm sm:text-base shadow-md transition-colors duration-200 ${
             activeView === "bulk"
               ? "bg-blue-600 text-white hover:bg-blue-700"
               : "bg-gray-200 text-gray-800 hover:bg-gray-300"
@@ -390,7 +390,10 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
         </button>
       </div>
 
-      <div ref={addCardFormRef} className="bg-white rounded-lg shadow-md p-6">
+      <div
+        ref={addCardFormRef}
+        className="bg-white rounded-lg shadow-md p-4 sm:p-6"
+      >
         {activeView === "extract" && (
           <div className="space-y-8">
             <ExtractUnderlinedText onExtract={handleExtractedText} />
@@ -445,8 +448,8 @@ export default function Cards({ card_set_id }: { card_set_id: string }) {
       </div>
 
       <div className="mt-12">
-        <h2 className="text-2xl font-semibold mb-6">Your Cards</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <h2 className="text-xl sm:text-2xl font-semibold mb-6">Your Cards</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {cards.map((card) => (
             <Card
               key={card.id}

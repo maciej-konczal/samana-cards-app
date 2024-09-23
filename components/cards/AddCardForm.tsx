@@ -254,13 +254,13 @@ export default function AddCardForm({
       onSubmit={handleSubmit}
       className="bg-white shadow-lg rounded-lg overflow-hidden"
     >
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4">
-        <h2 className="text-2xl font-bold text-white">
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-4 sm:px-6 py-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-white">
           {initialCard ? "Edit Card" : "Add New Card"}
         </h2>
       </div>
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="p-4 sm:p-6 space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <div>
             <label
               htmlFor="text"
@@ -303,7 +303,7 @@ export default function AddCardForm({
                   code={
                     languages
                       .find((l) => l.id === sourceLanguageId)
-                      ?.flag_emoji.toUpperCase() || "XX"
+                      ?.iso_2.toUpperCase() || "XX"
                   }
                   size={24}
                 />
@@ -317,8 +317,8 @@ export default function AddCardForm({
             key={translation.id || translationIndex}
             className="bg-gray-50 p-4 rounded-lg space-y-4"
           >
-            <div className="flex items-center space-x-4">
-              <div className="flex-grow relative">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+              <div className="flex-grow relative w-full sm:w-auto">
                 <input
                   type="text"
                   value={translation.text}
@@ -342,7 +342,7 @@ export default function AddCardForm({
                   <LanguageIcon className="h-5 w-5" />
                 </button>
               </div>
-              <div className="flex-shrink-0 w-48 relative">
+              <div className="flex-shrink-0 w-full sm:w-48 relative">
                 <select
                   value={translation.language_id}
                   onChange={(e) =>
@@ -368,7 +368,7 @@ export default function AddCardForm({
                       code={
                         languages
                           .find((l) => l.id === translation.language_id)
-                          ?.flag_emoji.toUpperCase() || "XX"
+                          ?.iso_2.toUpperCase() || "XX"
                       }
                       size={24}
                     />
